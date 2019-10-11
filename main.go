@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/jdelic/opensmtpd-filters-go"
 	"net"
 	"strings"
@@ -43,16 +44,24 @@ func prepareIpv6(address string) string {
 
 
 func prepareIpv4(address string) string {
-	return "unimplemented"
+	reversed := strings.Split(address, ".")
+
+	for i, j := 0, 3; i < 2; i, j = i + 1, j - 1 {
+		reversed[i], reversed[j] = reversed[j], reversed[i]
+	}
+
+	return strings.Join(reversed, ".")
 }
 
 
-func ipToQueryPrefix(ipstr string) string {
+func ipToQueryPrefix(ipstr string) (string, error) {
 	ip := net.ParseIP(ipstr)
-	if ip.To16() != nil {
-		return prepareIpv6(expandIpv6(ip))
+	if ip.To4() != nil {
+		return prepareIpv4(ip.String()), nil
+	} else if ip.To16() != nil {
+		return prepareIpv6(expandIpv6(ip)), nil
 	} else {
-		return prepareIpv4(ip.String())
+		return "", fmt.Errorf("invalid IP: %v", ipstr)
 	}
 }
 
@@ -67,6 +76,7 @@ func (d *DNSBLFilter) LinkConnect(session string, params []string) {
 	}
 }
 
-func main() {
 
+func main() {
+	opensmtpd.Run(DNSBLFilter{})
 }
