@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -16,6 +17,21 @@ type DNSBLFilter struct {
 
 }
 
+func (d DNSBLFilter) GetCapabilities() opensmtpd.FilterDispatchMap {
+	return opensmtpd.GetCapabilities(d)
+}
+
+func (d DNSBLFilter) Register() {
+	opensmtpd.Register(d)
+}
+
+func (d DNSBLFilter) Dispatch(params []string) {
+	opensmtpd.Dispatch(d, params)
+}
+
+func (d DNSBLFilter) ProcessConfig(scanner *bufio.Scanner) {
+	opensmtpd.ProcessConfig(d, scanner)
+}
 
 func debug(format string, values... interface{}) {
 	if *debugOutput {
@@ -77,7 +93,7 @@ func ipToQueryPrefix(ipstr string) (string, error) {
 
 
 /* <unknown>|fail|192.168.56.162:53878|192.168.56.162:25 */
-func (d DNSBLFilter) LinkConnect(session string, params []string) {
+func (d DNSBLFilter) LinkConnect(verb string, sh opensmtpd.SessionHolder, sessionId string, params []string) {
 	conn := params[2]
 	if conn[0:4] == "unix" {
 		debug("Unix socket.")
@@ -88,7 +104,7 @@ func (d DNSBLFilter) LinkConnect(session string, params []string) {
 		queryPart, err := ipToQueryPrefix(srcip)
 		if err != nil {
 			debug("Debug: Error during IP processing %v\n", err)
-			opensmtpd.SoftReject(params[0], session,"Failure in IP processing")
+			opensmtpd.SoftReject(params[0], sessionId,"Failure in IP processing")
 			return
 		}
 
@@ -116,14 +132,14 @@ func (d DNSBLFilter) LinkConnect(session string, params []string) {
 				reply := <- replyChan
 
 				if reply != "" {
-					opensmtpd.HardReject(params[0], session,
+					opensmtpd.HardReject(params[0], sessionId,
 						fmt.Sprintf("Your host is listed on blacklist %v", reply))
 					return  // bail after we received one positive answer
 				}
 			}
 
 			// if we have received all replies and none were true, we proceed
-			opensmtpd.Proceed(params[0], session)
+			opensmtpd.Proceed(params[0], sessionId)
 		}(repliesChan)
 	}
 }
@@ -147,5 +163,5 @@ func main() {
 	if flag.NArg() < 1 {
 		flag.Usage()
 	}
-	opensmtpd.Run(DNSBLFilter{})
+	opensmtpd.Run(&DNSBLFilter{})
 }
