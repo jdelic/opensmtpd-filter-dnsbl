@@ -75,7 +75,7 @@ func ipToQueryPrefix(ipstr string) (string, error) {
 
 
 /* <unknown>|fail|192.168.56.162:53878|192.168.56.162:25 */
-func (d *DNSBLFilter) Connect(verb string, sh opensmtpd.SessionHolder, sessionId string, params []string) {
+func (d *DNSBLFilter) Connect(fw opensmtpd.FilterWrapper, verb string, sh opensmtpd.SessionHolder, sessionId string, params []string) {
 	conn := params[2]
 	if conn[0:4] == "unix" {
 		debug("Unix socket.")
