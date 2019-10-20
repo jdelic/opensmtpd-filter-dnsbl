@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -13,25 +12,8 @@ import (
 )
 
 
-type DNSBLFilter struct {
+type DNSBLFilter struct {}
 
-}
-
-func (d DNSBLFilter) GetCapabilities() opensmtpd.FilterDispatchMap {
-	return opensmtpd.GetCapabilities(d)
-}
-
-func (d DNSBLFilter) Register() {
-	opensmtpd.Register(d)
-}
-
-func (d DNSBLFilter) Dispatch(params []string) {
-	opensmtpd.Dispatch(d, params)
-}
-
-func (d DNSBLFilter) ProcessConfig(scanner *bufio.Scanner) {
-	opensmtpd.ProcessConfig(d, scanner)
-}
 
 func debug(format string, values... interface{}) {
 	if *debugOutput {
@@ -93,7 +75,7 @@ func ipToQueryPrefix(ipstr string) (string, error) {
 
 
 /* <unknown>|fail|192.168.56.162:53878|192.168.56.162:25 */
-func (d DNSBLFilter) LinkConnect(verb string, sh opensmtpd.SessionHolder, sessionId string, params []string) {
+func (d *DNSBLFilter) Connect(verb string, sh opensmtpd.SessionHolder, sessionId string, params []string) {
 	conn := params[2]
 	if conn[0:4] == "unix" {
 		debug("Unix socket.")
@@ -163,5 +145,7 @@ func main() {
 	if flag.NArg() < 1 {
 		flag.Usage()
 	}
-	opensmtpd.Run(&DNSBLFilter{})
+
+	dnsblFilter := opensmtpd.NewFilter(&DNSBLFilter{})
+	opensmtpd.Run(dnsblFilter)
 }
