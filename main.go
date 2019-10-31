@@ -14,6 +14,9 @@ import (
 
 type DNSBLFilter struct {}
 
+func (d *DNSBLFilter) GetName() string {
+	return "DNS blacklist filter"
+}
 
 func debug(format string, values... interface{}) {
 	if *debugOutput {
