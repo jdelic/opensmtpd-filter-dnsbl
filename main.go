@@ -78,8 +78,8 @@ func ipToQueryPrefix(ipstr string) (string, error) {
 
 
 /* <unknown>|fail|192.168.56.162:53878|192.168.56.162:25 */
-func (d *DNSBLFilter) Connect(fw opensmtpd.FilterWrapper, verb string, sh opensmtpd.SessionHolder, sessionId string, params []string) {
-	conn := params[2]
+func (d *DNSBLFilter) Connect(fw opensmtpd.FilterWrapper, ev opensmtpd.FilterEvent) {
+	conn := ev.GetParams()[2]
 	if conn[0:4] == "unix" {
 		debug("Unix socket.")
 		return
@@ -89,7 +89,7 @@ func (d *DNSBLFilter) Connect(fw opensmtpd.FilterWrapper, verb string, sh opensm
 		queryPart, err := ipToQueryPrefix(srcip)
 		if err != nil {
 			debug("Debug: Error during IP processing %v\n", err)
-			opensmtpd.SoftReject(params[0], sessionId,"Failure in IP processing")
+			ev.Responder().SoftReject("Failure in IP processing")
 			return
 		}
 
@@ -101,7 +101,7 @@ func (d *DNSBLFilter) Connect(fw opensmtpd.FilterWrapper, verb string, sh opensm
 			for _, host := range flag.Args() {
 				query := fmt.Sprintf("%v.%v", queryPart, host)
 
-				go func() {
+				go func(host string) {
 					debug("Debug: Querying %v\n", query)
 					_, err := net.LookupHost(query)
 					if err == nil {
@@ -110,21 +110,21 @@ func (d *DNSBLFilter) Connect(fw opensmtpd.FilterWrapper, verb string, sh opensm
 						debug("DNS Response from %v: %v", host, err)
 						replyChan <- ""
 					}
-				}()
+				}(host)
 			}
 
 			for i := 0; i < len(flag.Args()); i++ {
 				reply := <- replyChan
 
 				if reply != "" {
-					opensmtpd.HardReject(params[0], sessionId,
+					ev.Responder().HardReject(
 						fmt.Sprintf("Your host is listed on blacklist %v", reply))
 					return  // bail after we received one positive answer
 				}
 			}
 
 			// if we have received all replies and none were true, we proceed
-			opensmtpd.Proceed(params[0], sessionId)
+			ev.Responder().Proceed()
 		}(repliesChan)
 	}
 }
