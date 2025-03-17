@@ -20,7 +20,7 @@ func (d *DNSBLFilter) GetName() string {
 
 func debug(format string, values... interface{}) {
 	if *debugOutput {
-		log.Printf(format, values)
+		log.Printf(format, values...)
 	}
 }
 
@@ -84,9 +84,7 @@ func (d *DNSBLFilter) Connect(fw opensmtpd.FilterWrapper, ev opensmtpd.FilterEve
 		debug("Unix socket.")
 		return
 	} else {
-		src := strings.Split(conn, ":")
-		srcip := src[0]
-		queryPart, err := ipToQueryPrefix(srcip)
+		queryPart, err := ipToQueryPrefix(strings.Trim(conn, "[]"))
 		if err != nil {
 			debug("Debug: Error during IP processing %v\n", err)
 			ev.Responder().SoftReject("Failure in IP processing")
