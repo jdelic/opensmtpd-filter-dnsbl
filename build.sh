@@ -5,9 +5,9 @@ go build
 fpm \
     -s dir \
     -t deb \
-    -p opensmtpd-filter-dnsbl_0.1.2.deb \
+    -p opensmtpd-filter-dnsbl_0.1.3.deb \
     -n opensmtpd-filter-dnsbl \
-    -v "0.1.2-0" \
+    -v "0.1.3-0" \
     -m "Jonas Maurus" \
     -d "opensmtpd (>=6.8.0)" \
     -d "opensmtpd (<<7.5)" \
